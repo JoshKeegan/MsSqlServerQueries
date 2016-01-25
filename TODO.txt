@@ -1,0 +1,12 @@
+Queries To Consider Writing:
+
+------------------------------
+Identify FillFactor Candidates
+------------------------------
+Once the Index Maintenance script has been running for a while, write a query 
+to check master.CommandLog for indexes that are frequently becoming fragmented.
+These are then candidates for lowering fillfactor from the default of 100 
+(actually stored as 0, but easier to think of as 100).
+This script could then be manually run once a month to check to see if the current
+FillFactor values on any indexes should be lowered in order to reduce fragmentation.
+This would obviously be a gradual process as FillFactor was dropped just a few percent at a time.
