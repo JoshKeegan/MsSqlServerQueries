@@ -28,7 +28,11 @@ INNER JOIN sys.tables AS t ON s.object_id = t.object_id
 */
 CROSS APPLY sys.dm_db_stats_properties (s.object_id, s.stats_id) AS statsProperties
 WHERE t.type = 'u'
-AND statsProperties.rows <> statsProperties.rows_sampled
+AND 
+(
+	statsProperties.rows <> statsProperties.rows_sampled OR
+	statsProperties.modification_counter > 0
+)
 ORDER BY 
 /* Options for ordering. What are we interested in? */
 /* Row Sample Percentage - flags up stats being generated from a small sample size, or if there have been a lot of modifications since it was last updated */
