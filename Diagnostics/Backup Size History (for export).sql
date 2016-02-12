@@ -7,13 +7,8 @@
 		Josh Keegan 04/02/2016
 */
 
-/* set this to be whatever dbname you want */
-DECLARE @dbname sysname = '';
-
-SELECT 
- bup.backup_start_date AS 'Backup Started',
+SELECT bup.backup_start_date AS 'Backup Started',
 CAST((bup.backup_size / (1024 * 1024 * 1024)) AS varchar) AS 'Size (GiB)'
 FROM msdb.dbo.backupset bup
-WHERE bup.database_name IN (SELECT name FROM master.dbo.sysdatabases)
-AND bup.database_name LIKE @dbname
+WHERE bup.database_name = DB_NAME()
 ORDER BY bup.backup_start_date DESC
