@@ -4,10 +4,6 @@
 		with a fix & a couple of modifications
 */
 
-DECLARE @dbname sysname;
-/* set this to be whatever dbname you want (null gives all) */
-SET @dbname = NULL;
-
 SELECT bup.user_name AS [User],
  bup.database_name AS [Database],
  bup.server_name AS [Server],
