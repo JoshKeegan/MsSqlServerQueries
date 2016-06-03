@@ -8,7 +8,11 @@
 */
 
 SELECT bup.backup_start_date AS 'Backup Started',
-CAST((bup.backup_size / (1024 * 1024 * 1024)) AS varchar) AS 'Size (GiB)'
+CAST((bup.backup_size / (1024 * 1024 * 1024)) AS varchar) AS 'Size (GiB)',
+bup.database_name
 FROM msdb.dbo.backupset bup
+/* For current database */
 WHERE bup.database_name = DB_NAME()
+/* Data file backups */
+AND bup.type = 'D'
 ORDER BY bup.backup_start_date DESC
