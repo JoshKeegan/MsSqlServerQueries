@@ -31,8 +31,14 @@ BEGIN
 		DECLARE @c nchar(1) = SUBSTRING(@in, @i, 1);
 		DECLARE @cUp nchar(1) = UPPER(@c);
 
+		/* If char is already an underscore */
+		IF @c = '_'
+		BEGIN
+			/* Consider it to be upper case so that we don't add another underscore if the next value is upper case */
+			SET @lastUpper = 1;
+		END
 		/* If char is upper case */
-		IF @c = @cUp COLLATE Latin1_General_CS_AS 
+		ELSE IF @c = @cUp COLLATE Latin1_General_CS_AS
 		BEGIN
 			/* If we aren't already in an upper case section, we've just entered one. This signifies a new word so separate with underscore */
 			IF @lastUpper = 0
