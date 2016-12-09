@@ -1,9 +1,9 @@
 /*
 	Top Queries by resource usage
 	Based on query from http://www.databasejournal.com/features/mssql/finding-the-source-of-your-sql-server-io.html
-
-	TODO: Use the XML trick for the statement
 */
+
+DECLARE @crLf char(2) = CHAR(13) + CHAR(10);
 
 SELECT TOP 25 
 	cp.usecounts AS 'Execution Count',
@@ -12,7 +12,7 @@ SELECT TOP 25
 	qs.total_logical_reads AS 'Logical Reads',
 	qs.total_logical_writes AS 'Logical Writes',
 	qs.total_physical_reads AS 'Physical Reads',
-	SUBSTRING(text, 
+	CAST(('<?ClickToOpen' + @crLf + SUBSTRING(text, 
                 CASE WHEN statement_start_offset = 0 
                         OR statement_start_offset IS NULL  
                         THEN 1  
@@ -26,7 +26,7 @@ SELECT TOP 25
                         OR statement_start_offset IS NULL 
                             THEN 1  
                             ELSE statement_start_offset/2  END + 1 
-                )  AS [Statement],
+                ) + @crLf + ' ?>') AS xml) AS [Statement],
 	dbs.name AS 'Database'
 FROM sys.dm_exec_query_stats qs
 INNER JOIN sys.dm_exec_cached_plans cp on qs.plan_handle = cp.plan_handle
