@@ -24,7 +24,7 @@ SELECT TOP 25
                         ELSE statement_end_offset/2 END - 
                     CASE WHEN statement_start_offset = 0 
                         OR statement_start_offset IS NULL 
-                            THEN 1  
+                            THEN 2
                             ELSE statement_start_offset/2  END + 1 
                 ) + @crLf + ' ?>') AS xml) AS [Statement],
 	dbs.name AS 'Database'
