@@ -142,6 +142,8 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 	DECLARE @warning varchar(max) = '', @tableCompressionRatio float, @numIndexesNoBenefit int, @numIndexesLowBenefit int;
 
+	/* TODO: Warn if compression already used for any indexes in this table. This would affect how results were interpreted */
+
 	/* Does the table have any rows */
 	IF (SELECT TOP 1 row_count FROM sys.dm_db_partition_stats WHERE object_id = @tableId) = 0
 	BEGIN
