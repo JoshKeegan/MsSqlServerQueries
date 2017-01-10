@@ -3,6 +3,8 @@
 		Details space savings that could be achieved per table if their compression level was altered
 	Authors:
 		Josh Keegan 10/01/2017
+
+	Requires PrettyPrintDataSize
 */
 
 /* Compression method to use. Can be PAGE or ROW */
@@ -140,8 +142,6 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
 	DECLARE @warning varchar(max) = '', @tableCompressionRatio float, @numIndexesNoBenefit int, @numIndexesLowBenefit int;
 
-	 RAISERROR('%i', 0, 1, @tableId) WITH NOWAIT;
-
 	/* Does the table have any rows */
 	IF (SELECT TOP 1 row_count FROM sys.dm_db_partition_stats WHERE object_id = @tableId) = 0
 	BEGIN
@@ -218,7 +218,7 @@ SELECT
 	master.dbo.PrettyPrintDataSize((SUM(totalSizeCurr) - SUM(totalSizeProjected)) * 1024) AS 'Size Decrease',
 	COALESCE(CAST(SUM(totalSizeCurr) AS float) / NULLIF(SUM(totalSizeProjected), 0), 1) AS 'Compression Ratio (n:1)',
 	CAST(@xmlPrefix + tw.warnings + @xmlSuffix AS xml) AS 'Warnings',
-	'EXEC sp_estimate_data_compression_savings @schema_name = ''' + @schemaName + ''', @object_name = ''' + @tableName + 
+	'EXEC sp_estimate_data_compression_savings @schema_name = ''' + schemaName + ''', @object_name = ''' + objectName + 
 		''', @index_id = NULL, @partition_number = NULL, @data_compression = ''' + @compression + '''' AS 'Detailed Query'
 FROM #indexEstimates ie
 INNER JOIN #tablesWarnings tw ON tw.tableId = ie.tableId
