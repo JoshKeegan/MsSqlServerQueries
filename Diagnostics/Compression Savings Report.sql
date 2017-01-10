@@ -191,7 +191,7 @@ BEGIN
 	/* Do benefit from compression */
 	HAVING SUM(totalSizeCurr) - SUM(totalSizeProjected) > 0
 	/* Just not by much */
-	AND CAST(SUM(totalSizeCurr) AS float) / SUM(totalSizeProjected) < @lowBenefitThreshold;
+	AND COALESCE(CAST(SUM(totalSizeCurr) AS float) / NULLIF(SUM(totalSizeProjected), 0), 1) < @lowBenefitThreshold;
 
 	IF @numIndexesLowBenefit > 0
 	BEGIN
