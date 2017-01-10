@@ -140,7 +140,7 @@ FETCH NEXT FROM warningsCursor INTO @tableId;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-	DECLARE @warning varchar(max) = '', @tableCompressionRatio float, @numIndexesNoBenefit int, @numIndexesLowBenefit int;
+	DECLARE @warning varchar(max) = '', @tableCompressionRatio float = null, @numIndexesNoBenefit int = null, @numIndexesLowBenefit int = null;
 
 	/* TODO: Warn if compression already used for any indexes in this table. This would affect how results were interpreted */
 
