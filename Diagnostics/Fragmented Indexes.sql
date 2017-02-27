@@ -18,7 +18,7 @@ WHERE C.index_id > 0
 /* Don't worry about very small indexes - mimics default of Ola Halengreen's IndexOptimize script, which selects this value based on the reccomendadtion of a MS whitepaper */
 AND A.page_count >= 1000
 /* How much fragmentation are we bothered about on this DB */
-AND A.avg_fragmentation_in_percent > 5
+AND A.avg_fragmentation_in_percent > 30
 
 -- Limit to a specific table
 --AND B.name = 'TwitterStatuses'

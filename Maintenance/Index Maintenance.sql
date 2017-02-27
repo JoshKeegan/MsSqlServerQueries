@@ -9,9 +9,9 @@ EXEC dbo.IndexOptimize
 /* Do all system & User Databases */
 @Databases = 'ALL_DATABASES',
 
-/* Currently same as the defaults, might want to increase if they're too aggressive */
-@FragmentationLevel1 = 5,
-@FragmentationLevel2 = 30,
+/* Raised minimum fragmentation levels (using Brent Ozar's recommended levels). Defaults are very aggressive */
+@FragmentationLevel1 = 30,
+@FragmentationLevel2 = 50,
 
 /* Never automatically perform Offline Index Rebuilds, leave that for me to do if REALLY necessary */
 @FragmentationLow = NULL,
