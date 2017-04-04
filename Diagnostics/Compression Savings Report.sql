@@ -13,6 +13,9 @@ DECLARE @compression varchar(4) = 'PAGE';
 /* Threshold for warning of low benefits from compression (Compression Ratio less than this) */
 DECLARE @lowBenefitThreshold float = 1.1;
 
+/* Whether to show the (detailed) per index breakdown */
+DECLARE @showPerIndexBreakdown bit = 1;
+
 /* Constants */
 DECLARE @crLf nvarchar(max) = CHAR(13) + CHAR(10);
 DECLARE @xmlPrefix nvarchar(max) = '<?ClickToOpen ' + @crLf + @crLf;
@@ -211,6 +214,7 @@ END
 /* Clean Up */
 CLOSE warningsCursor;
 DEALLOCATE warningsCursor;
+
 /* Select the results */
 SELECT 
 	schemaName AS 'Schema',
@@ -226,6 +230,26 @@ FROM #indexEstimates ie
 INNER JOIN #tablesWarnings tw ON tw.tableId = ie.tableId
 GROUP BY ie.tableId, schemaName, objectName, tw.warnings
 ORDER BY SUM(totalSizeCurr) - SUM(totalSizeProjected) DESC;
+
+/* (Detailed) Per Index Breakdown */
+IF @showPerIndexBreakdown = 1
+BEGIN
+	SELECT 
+		#indexEstimates.schemaName AS 'Schema',
+		#indexEstimates.objectName AS 'Table',
+		i.name AS 'Index',
+		#indexEstimates.partitionNum AS 'Partition Num',
+		i.type_desc AS 'Index Type',
+		p.data_compression_desc AS 'Current Compression',
+		master.dbo.PrettyPrintDataSize(totalSizeCurr * 1024) AS 'Current Size',
+		master.dbo.PrettyPrintDataSize(totalSizeProjected * 1024) AS 'Projected Size',
+		master.dbo.PrettyPrintDataSize((totalSizeCurr - totalSizeProjected) * 1024) AS 'Size Decrease',
+		COALESCE(CAST(totalSizeCurr AS float) / NULLIF(totalSizeProjected, 0), 1) AS 'Compression Ratio (n:1)'
+	FROM #indexEstimates
+	INNER JOIN sys.indexes i ON i.object_id = #indexEstimates.tableId AND i.index_id = #indexEstimates.indexId
+	INNER JOIN sys.partitions p ON p.object_id = i.object_id AND p.index_id = i.index_id
+	ORDER BY totalSizeCurr - totalSizeProjected DESC;
+END
 
 /* Drop temp tables */
 DROP TABLE #indexEstimatesSpResults;
