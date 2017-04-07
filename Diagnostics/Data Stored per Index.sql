@@ -10,10 +10,14 @@ DECLARE @tableName nvarchar(max) = 'TwitterStatuses';
 DECLARE @pageBytes AS int = 8 * 1024;
 
 SELECT 
-	i.name AS Name,
+	i.name AS 'Name',
 	i.type_desc AS 'Type',
-	i.is_unique AS 'Unique',
+	i.is_unique AS 'Is Unique',
 	i.is_primary_key AS 'PK',
+	i.fill_factor AS 'Fill Factor',
+	i.has_filter AS 'Is Filtered',
+	p.rows AS 'Num Rows',
+	p.data_compression_desc AS 'Compression',
 	[master].[dbo].[PrettyPrintDataSize](au.total_pages * @pageBytes) AS 'Total Space', 
 	[master].[dbo].[PrettyPrintDataSize](au.used_pages * @pageBytes) AS 'Used Space', 
 	[master].[dbo].[PrettyPrintDataSize]((au.total_pages - au.used_pages) * @pageBytes) AS 'Unused Space'
