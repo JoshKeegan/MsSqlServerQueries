@@ -35,11 +35,19 @@ CompressionPerTable AS
 			) END
 		) AS compressionsInUse
 	FROM sys.tables t
+),
+RowsPerTable AS
+(
+	SELECT i.object_id, p.rows
+	FROM sys.indexes i
+	INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
+	/* Where this is the clustered index or heap type, and will therefore have all the rows */
+	WHERE i.type IN (0, 1)
 )
 SELECT 
 	s.name AS 'Schema',
 	t.name AS 'Table',
-	p.rows AS 'Num Rows',
+	RowsPerTable.rows AS 'Num Rows',
 	[master].[dbo].[PrettyPrintDataSize](SUM(a.total_pages) * @pageBytes) AS 'Total Space', 
 	[master].[dbo].[PrettyPrintDataSize](SUM(a.used_pages) * @pageBytes) AS 'Used Space', 
 	[master].[dbo].[PrettyPrintDataSize]((SUM(a.total_pages) - SUM(a.used_pages)) * @pageBytes) AS 'Unused Space',
@@ -51,10 +59,11 @@ INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
 INNER JOIN sys.indexes i ON t.object_id = i.object_id
 INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
 INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id
+INNER JOIN RowsPerTable ON RowsPerTable.object_id = t.object_id
 INNER JOIN CompressionPerTable ON CompressionPerTable.object_id = t.object_id
 WHERE t.name NOT LIKE 'dt%' -- filter out system tables for diagramming
 AND t.is_ms_shipped = 0
 AND i.object_id > 255
-GROUP BY t.name, s.name, p.rows, CompressionPerTable.compressionsInUse
+GROUP BY t.name, s.name, RowsPerTable.rows, CompressionPerTable.compressionsInUse
 --ORDER BY s.Name, t.Name
 ORDER BY SUM(a.total_pages) DESC
