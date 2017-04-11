@@ -9,30 +9,48 @@ DECLARE @pageBytes AS int = 8 * 1024;
 
 WITH CompressionsInUse AS
 (
-	SELECT DISTINCT
+	SELECT
 		i.object_id,
-		data_compression_desc
+		data_compression_desc,
+		COUNT(*) AS count
 	FROM sys.indexes i
 	INNER JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id
+	GROUP BY i.object_id, data_compression_desc
 ),
 CompressionPerTable AS
 (
 	SELECT 
 		t.object_id,
 		(
+			/* If not all indexes on this table have the same compression level */
 			SELECT CASE WHEN 
-			(
-				SELECT COUNT(*) 
-				FROM CompressionsInUse 
-				WHERE CompressionsInUse.object_id = t.object_id
-			) > 1 
-			THEN 'MIXED' 
+				(
+					SELECT COUNT(*) 
+					FROM CompressionsInUse 
+					WHERE CompressionsInUse.object_id = t.object_id
+				) > 1 
+				/* Display a summary of the compression methods in use */
+				THEN 'MIXED:' +
+				(
+					SELECT SUBSTRING
+					(
+						(
+							SELECT ',' + data_compression_desc + '(' + CAST(count AS nvarchar(max)) + ')'
+							FROM CompressionsInUse
+							WHERE CompressionsInUse.object_id = t.object_id
+							ORDER BY count DESC, data_compression_desc ASC
+							FOR XML PATH('')
+						), 2, 200000
+					) AS csv
+				)
+			/* Otherwise, all indexes have the same compression method, just display its description */
 			ELSE 
-			(
-				SELECT TOP 1 data_compression_desc 
-				FROM CompressionsInUse 
-				WHERE CompressionsInUse.object_id = t.object_id
-			) END
+				(
+					SELECT TOP 1 data_compression_desc 
+					FROM CompressionsInUse 
+					WHERE CompressionsInUse.object_id = t.object_id
+				) 
+			END
 		) AS compressionsInUse
 	FROM sys.tables t
 ),
