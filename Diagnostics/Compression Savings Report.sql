@@ -244,7 +244,16 @@ BEGIN
 		master.dbo.PrettyPrintDataSize(totalSizeCurr * 1024) AS 'Current Size',
 		master.dbo.PrettyPrintDataSize(totalSizeProjected * 1024) AS 'Projected Size',
 		master.dbo.PrettyPrintDataSize((totalSizeCurr - totalSizeProjected) * 1024) AS 'Size Decrease',
-		COALESCE(CAST(totalSizeCurr AS float) / NULLIF(totalSizeProjected, 0), 1) AS 'Compression Ratio (n:1)'
+		COALESCE(CAST(totalSizeCurr AS float) / NULLIF(totalSizeProjected, 0), 1) AS 'Compression Ratio (n:1)',
+		CAST(@xmlPrefix + 
+'ALTER INDEX ' + i.name + ' ON ' + #indexEstimates.objectName + '
+REBUILD PARTITION = ALL  
+WITH 
+(
+	DATA_COMPRESSION = ' + @compression + ',
+	/* Rebuild online - remove for an offline rebuild (faster if index can be locked, and online isn''t supported by all editions */
+	ONLINE = ON
+);' + @xmlSuffix AS xml) AS 'Set Compression'
 	FROM #indexEstimates
 	INNER JOIN sys.indexes i ON i.object_id = #indexEstimates.tableId AND i.index_id = #indexEstimates.indexId
 	INNER JOIN sys.partitions p ON p.object_id = i.object_id AND p.index_id = i.index_id
