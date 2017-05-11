@@ -62,7 +62,8 @@ CREATE TABLE #indexEstimates
 	totalSizeProjected bigint,
 	sampleSizeCurr bigint,
 	sampleSizeProjected bigint,
-	tableId int
+	tableId int,
+	alreadyCompressed bit /* Whether the index is already compressed to the target level */
 );
 
 /* 
@@ -108,11 +109,20 @@ BEGIN
 		@partition_number = NULL,
 		@data_compression = @compression;
 
-	/* Move results into #indexEstimates, adding table ID */
+	/* Move results into #indexEstimates, adding table ID and whether the index is already compressed to the target level */
 	INSERT INTO #indexEstimates (objectName, schemaName, indexId, partitionNum, totalSizeCurr, 
-			totalSizeProjected, sampleSizeCurr, sampleSizeProjected, tableId)
-		SELECT *, @tableId
-		FROM #indexEstimatesSpResults;
+			totalSizeProjected, sampleSizeCurr, sampleSizeProjected, tableId, alreadyCompressed)
+		SELECT 
+			#indexEstimatesSpResults.*, 
+			@tableId AS tableId, 
+			CASE WHEN 
+				(p.data_compression_desc = @compression) 
+				THEN CAST(1 AS bit) 
+				ELSE CAST(0 AS bit) 
+			END AS alreadyCompressed
+		FROM #indexEstimatesSpResults
+		INNER JOIN sys.indexes i ON i.object_id = @tableId AND i.index_id = #indexEstimatesSpResults.indexId
+		INNER JOIN sys.partitions p ON p.object_id = i.object_id AND p.index_id = i.index_id;
 
 	TRUNCATE TABLE #indexEstimatesSpResults;
 
@@ -123,6 +133,11 @@ END
 /* Clean up */
 CLOSE tablesCursor;
 DEALLOCATE tablesCursor;
+
+/* Correct estimates for any index that is already compressed using the specified compression level */
+UPDATE #indexEstimates
+SET totalSizeProjected = totalSizeCurr
+WHERE alreadyCompressed = 1;
 
 /* Build warnings */
 IF OBJECT_ID('tempdb..#tablesWarnings') IS NOT NULL
@@ -143,9 +158,11 @@ FETCH NEXT FROM warningsCursor INTO @tableId;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-	DECLARE @warning varchar(max) = '', @tableCompressionRatio float = null, @numIndexesNoBenefit int = null, @numIndexesLowBenefit int = null;
-
-	/* TODO: Warn if compression already used for any indexes in this table. This would affect how results were interpreted */
+	DECLARE @warning varchar(max) = '', 
+		@numIndexesAlreadyCompressed int = null, 
+		@tableCompressionRatio float = null, 
+		@numIndexesNoBenefit int = null, 
+		@numIndexesLowBenefit int = null;
 
 	/* Does the table have any rows */
 	IF (SELECT TOP 1 row_count FROM sys.dm_db_partition_stats WHERE object_id = @tableId) = 0
@@ -153,7 +170,21 @@ BEGIN
 		SET @warning += 'Table has no rows, and therefore cannot benefit from compression';
 	END
 
-	/* Does the table overall benefit from compression */
+	/* Is the specified compression level already used on indexes in this table */
+	SELECT @numIndexesAlreadyCompressed = COUNT(*)
+	FROM #indexEstimates
+	WHERE tableId = @tableId
+	AND alreadyCompressed = 1;
+
+	IF @numIndexesAlreadyCompressed > 0
+	BEGIN
+		IF @warning <> ''
+			SET @warning += @crLf;
+
+		SET @warning += CAST(@numIndexesAlreadyCompressed AS nvarchar(max)) + ' indexes are already ' + @compression + ' compressed';
+	END
+
+	/* Does the table overall benefit from compression. */
 	SELECT @tableCompressionRatio = COALESCE(CAST(SUM(totalSizeCurr) AS float) / NULLIF(SUM(totalSizeProjected), 0), 1)
 	FROM #indexEstimates
 	WHERE tableId = @tableId;
@@ -164,6 +195,8 @@ BEGIN
 			SET @warning += @crLf;
 		
 		SET @warning += 'Table does not benefit from compression overall';
+
+		/* TODO: Could calculate whether just the non-compressed indexes would benefit & add that to the warning */
 	END
 	ELSE IF @tableCompressionRatio < @lowBenefitThreshold
 	BEGIN
@@ -171,12 +204,16 @@ BEGIN
 			SET @warning += @crLf;
 
 		SET @warning += 'Table has a low benefit from compression overall';
+
+		/* TODO: Could calculate whether just the non-compressed indexes would benefit & add that to the warning */
 	END
 
 	/* Indexes that won't benefit from compression */
 	SELECT @numIndexesNoBenefit = COUNT(*)
 	FROM #indexEstimates
 	WHERE tableId = @tableId
+	/* Don't consider ones that are already compressed to the target level */
+	AND alreadyCompressed = 0
 	HAVING SUM(totalSizeCurr) - SUM(totalSizeProjected) <= 0;
 
 	IF @numIndexesNoBenefit > 0
@@ -191,6 +228,8 @@ BEGIN
 	SELECT @numIndexesLowBenefit = COUNT(*)
 	FROM #indexEstimates
 	WHERE tableId = @tableId
+	/* Don't consider ones that are already compressed to the target level */
+	AND alreadyCompressed = 0
 	/* Do benefit from compression */
 	HAVING SUM(totalSizeCurr) - SUM(totalSizeProjected) > 0
 	/* Just not by much */
@@ -257,6 +296,8 @@ WITH
 	FROM #indexEstimates
 	INNER JOIN sys.indexes i ON i.object_id = #indexEstimates.tableId AND i.index_id = #indexEstimates.indexId
 	INNER JOIN sys.partitions p ON p.object_id = i.object_id AND p.index_id = i.index_id
+	/* Don't display indexes that are already compressed to the target level */
+	WHERE #indexEstimates.alreadyCompressed = 0
 	ORDER BY totalSizeCurr - totalSizeProjected DESC;
 END
 
