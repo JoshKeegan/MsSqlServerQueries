@@ -159,10 +159,15 @@ FETCH NEXT FROM warningsCursor INTO @tableId;
 WHILE @@FETCH_STATUS = 0
 BEGIN
 	DECLARE @warning varchar(max) = '', 
+		@numIndexes int = null,
 		@numIndexesAlreadyCompressed int = null, 
 		@tableCompressionRatio float = null, 
 		@numIndexesNoBenefit int = null, 
 		@numIndexesLowBenefit int = null;
+
+	SELECT @numIndexes = COUNT(*)
+	FROM #indexEstimates
+	WHERE tableId = @tableId;
 
 	/* Does the table have any rows */
 	IF (SELECT TOP 1 row_count FROM sys.dm_db_partition_stats WHERE object_id = @tableId) = 0
@@ -181,6 +186,9 @@ BEGIN
 		IF @warning <> ''
 			SET @warning += @crLf;
 
+		IF @numIndexesAlreadyCompressed = @numIndexes
+			SET @warning += 'All ';
+
 		SET @warning += CAST(@numIndexesAlreadyCompressed AS nvarchar(max)) + ' indexes are already ' + @compression + ' compressed';
 	END
 
@@ -195,8 +203,6 @@ BEGIN
 			SET @warning += @crLf;
 		
 		SET @warning += 'Table does not benefit from compression overall';
-
-		/* TODO: Could calculate whether just the non-compressed indexes would benefit & add that to the warning */
 	END
 	ELSE IF @tableCompressionRatio < @lowBenefitThreshold
 	BEGIN
@@ -204,8 +210,25 @@ BEGIN
 			SET @warning += @crLf;
 
 		SET @warning += 'Table has a low benefit from compression overall';
+	END
 
-		/* TODO: Could calculate whether just the non-compressed indexes would benefit & add that to the warning */
+	/* If we've just warned about no, or low-benefits, and some indexes are compressed, note that and also calculate whether just the non-compressed indexes would benefit */
+	IF @tableCompressionRatio < @lowBenefitThreshold AND @numIndexesAlreadyCompressed > 0
+	BEGIN
+		DECLARE @notCompressedTableCompressionRatio float = null;
+
+		SELECT @notCompressedTableCompressionRatio = COALESCE(CAST(SUM(totalSizeCurr) AS float) / NULLIF(SUM(totalSizeProjected), 0), 1)
+		FROM #indexEstimates
+		WHERE tableId = @tableId
+		AND alreadyCompressed = 0;
+
+		/* If they aren't all compressed */
+		IF @numIndexesAlreadyCompressed < @numIndexes
+		BEGIN
+			SET @warning += ', however some indexes are already ' + @compression + ' compressed. Excluding those, the remaining ' + 
+				CAST((@numIndexes - @numIndexesAlreadyCompressed) AS nvarchar(max)) + ' indexes have a compresstion ratio of ' + 
+				CAST(@notCompressedTableCompressionRatio AS nvarchar(max)) + '.';
+		END
 	END
 
 	/* Indexes that won't benefit from compression */
