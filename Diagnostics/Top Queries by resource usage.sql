@@ -13,6 +13,7 @@ SELECT TOP 25
 	cp.usecounts AS 'Execution Count',
 	qs.total_worker_time AS CPU,
 	qs.total_elapsed_time AS 'Elapsed Time (μs)', /* Microseconds (millionths of a second) */
+	qs.total_elapsed_time / cp.usecounts AS 'Avg. Time/Exec. (μs)',
 	qs.total_logical_reads AS 'Logical Reads',
 	qs.total_logical_writes AS 'Logical Writes',
 	qs.total_logical_reads + qs.total_logical_writes AS 'Logical Reads + Writes',
