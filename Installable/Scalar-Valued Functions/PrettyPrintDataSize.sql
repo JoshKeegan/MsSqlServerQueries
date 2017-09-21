@@ -20,16 +20,17 @@ ALTER FUNCTION [dbo].[PrettyPrintDataSize]
 RETURNS varchar(max)
 AS
 BEGIN
-	DECLARE @fpBytes numeric = @bytes;
+	DECLARE @fpBytes numeric(38, 0) = @bytes;
 	DECLARE @toRet varchar(max);
 
 	SELECT @toRet =
 	CASE 
-		/* TODO: Round the sizes to 3dp (or whatever is specified through optional param), e.g. CAST(ROUND(124.3654576767, 3) AS decimal(9, 3)) */
-		WHEN @bytes > (CAST(1024 AS bigint) * 1024 * 1024 * 1024) THEN CAST((@fpBytes / (CAST(1024 AS bigint) * 1024 * 1024 * 1024)) AS varchar) + ' TiB'
-		WHEN @bytes > (1024 * 1024 * 1024) THEN CAST((@fpBytes / (1024 * 1024 * 1024)) AS varchar) + ' GiB'
-		WHEN @bytes > (1024 * 1024) THEN CAST((@fpBytes / (1024 * 1024)) AS varchar) + ' MiB'
-		WHEN @bytes > 1024 THEN CAST((@fpBytes / (1024)) AS varchar) + ' KiB'
+		WHEN @bytes > (CAST(1024 AS bigint) * 1024 * 1024 * 1024 * 1024 * 1024) THEN CAST(CAST((@fpBytes / (CAST(1024 AS bigint) * 1024 * 1024 * 1024 * 1024 * 1024)) AS numeric(18, 3)) AS varchar) + ' EiB'
+		WHEN @bytes > (CAST(1024 AS bigint) * 1024 * 1024 * 1024 * 1024) THEN CAST(CAST((@fpBytes / (CAST(1024 AS bigint) * 1024 * 1024 * 1024 * 1024)) AS numeric(18, 3)) AS varchar) + ' PiB'
+		WHEN @bytes > (CAST(1024 AS bigint) * 1024 * 1024 * 1024) THEN CAST(CAST((@fpBytes / (CAST(1024 AS bigint) * 1024 * 1024 * 1024)) AS numeric(18, 3)) AS varchar) + ' TiB'
+		WHEN @bytes > (1024 * 1024 * 1024) THEN CAST(CAST((@fpBytes / (1024 * 1024 * 1024)) AS numeric(18, 2)) AS varchar) + ' GiB'
+		WHEN @bytes > (1024 * 1024) THEN CAST(CAST((@fpBytes / (1024 * 1024)) AS numeric(18, 2)) AS varchar) + ' MiB'
+		WHEN @bytes > 1024 THEN CAST(CAST((@fpBytes / (1024)) AS numeric(18, 2)) AS varchar) + ' KiB'
 		ELSE CAST(@bytes AS varchar) + ' B'
 	END;
 
