@@ -33,10 +33,12 @@ SELECT TOP 25
                             THEN 2
                             ELSE statement_start_offset/2  END + 1 
                 ) + @xmlSuffix) AS xml) AS 'Statement',
-	text AS 'Full Query' /* Useful to track down where an individual statement actually is so you can update it (e.g. if in stored procedure, which one?) */
+	text AS 'Full Query', /* Useful to track down where an individual statement actually is so you can update it (e.g. if in stored procedure, which one?) */
+	qp.query_plan AS 'Execution Plan'
 FROM sys.dm_exec_query_stats qs
 INNER JOIN sys.dm_exec_cached_plans cp on qs.plan_handle = cp.plan_handle
 CROSS APPLY sys.dm_exec_sql_text(cp.plan_handle) st
+CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) qp
 LEFT OUTER JOIN sys.databases dbs ON dbs.database_id = st.dbid
 /* Change order by for CPU, logical reads, writes etc... */
 ORDER BY qs.total_logical_reads + qs.total_logical_writes DESC;
