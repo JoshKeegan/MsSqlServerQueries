@@ -24,14 +24,17 @@ BEGIN
 
 	/* Seconds */
 	SET @s = @secs % 60;
+	SET @s = RIGHT('0' + @s, 2);
 	SET @secs = @secs / 60;
 
 	/* Minutes */
 	SET @mi = @secs % 60;
+	SET @mi = RIGHT('0' + @mi, 2);
 	SET @secs = @secs / 60;
 
 	/* Hours */
 	SET @h = @secs % 24;
+	SET @h = RIGHT('0' + @h, 2);
 	SET @secs = @secs / 24;
 
 	/* Days */
