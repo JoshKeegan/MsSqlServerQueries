@@ -12,8 +12,10 @@ SELECT TOP 25
 	cp.objtype AS 'Query Type',
 	cp.usecounts AS 'Execution Count',
 	qs.total_worker_time AS 'CPU Time (μs)', /* Microseconds, but only accurate to milliseconds. For natively compiled stored procedures, may not be accurate if many executions take less than 1 millisecond. */
+	qs.max_worker_time AS 'Max CPU Time (μs)', /* Microseconds (millionths of a second), but only accurate to milliseconds */
 	qs.total_elapsed_time AS 'Elapsed Time (μs)', /* Microseconds (millionths of a second), but only accurate to milliseconds */
 	qs.total_elapsed_time / cp.usecounts AS 'Avg. Time/Exec. (μs)',
+	qs.max_elapsed_time AS 'Max Elapsed TIme (μs)', /* Microseconds (millionths of a second), but only accurate to milliseconds */
 	qs.total_logical_reads AS 'Logical Reads',
 	qs.total_logical_writes AS 'Logical Writes',
 	qs.total_logical_reads + qs.total_logical_writes AS 'Logical Reads + Writes',
