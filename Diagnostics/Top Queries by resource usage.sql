@@ -15,7 +15,7 @@ SELECT TOP 25
 	qs.max_worker_time AS 'Max CPU Time (μs)', /* Microseconds (millionths of a second), but only accurate to milliseconds */
 	qs.total_elapsed_time AS 'Elapsed Time (μs)', /* Microseconds (millionths of a second), but only accurate to milliseconds */
 	qs.total_elapsed_time / cp.usecounts AS 'Avg. Time/Exec. (μs)',
-	qs.max_elapsed_time AS 'Max Elapsed TIme (μs)', /* Microseconds (millionths of a second), but only accurate to milliseconds */
+	qs.max_elapsed_time AS 'Max Elapsed Time (μs)', /* Microseconds (millionths of a second), but only accurate to milliseconds */
 	qs.total_logical_reads AS 'Logical Reads',
 	qs.total_logical_writes AS 'Logical Writes',
 	qs.total_logical_reads + qs.total_logical_writes AS 'Logical Reads + Writes',
