@@ -10,7 +10,8 @@ Contains:
 
 Plus others that I haven't used.  
   
-Download: http://www.brentozar.com/first-aid/sql-server-downloads/
+Download: http://www.brentozar.com/first-aid/sql-server-downloads/  
+Direct link: http://public.brentozar.com/FirstResponderKit.zip
 
 ### sp_WhoIsActive
 What queries are running right now? What are they waiting on? And lots more info.  
