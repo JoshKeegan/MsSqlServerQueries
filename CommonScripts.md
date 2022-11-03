@@ -17,7 +17,7 @@ Direct link: https://downloads.brentozar.com/FirstResponderKit.zip
 What queries are running right now? What are they waiting on? And lots more info.  
 When the Activity Monitor shows a huge spike in Waiting Tasks & you don't know what's causing it, this will tell you.
 
-Download: http://sqlblog.com/files/default.aspx
+Download: https://github.com/amachanic/sp_whoisactive/
 
 ### IndexOptimize
 Ola Halengreen has a few scripts for DB maintenance, and the others may be worth looking at but the IndexOptimize makes
